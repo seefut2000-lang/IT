@@ -372,8 +372,8 @@
 
     <!-- Web Logic Control Scripts -->
     <script>
-        // --- ตั้งค่า URL ของ Google Apps Script ที่ Deploy ไว้ ---
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzVil-iWcO3ymVa64Wg27e2axPZ5O1qNTKb1nv40DYBpYZe9CESWjqHZOOQDKO47AQM/exec'; // <-- เอา URL ของ Web App มาวางที่นี่
+        // --- เปลี่ยน URL มาเป็น Backend Node.js (SQL Server) ---
+        const LOCAL_API_URL = 'http://localhost:3000/api/scan'; 
 
         // --- 1. ข้อมูลรถเข็นในระบบพร้อมตัวระบุสถานะเวลา (State) ---
         let dbCarts = [];
@@ -696,8 +696,8 @@
             };
             dbLogs.unshift(newLog);
 
-            // ส่งข้อมูลขึ้น Google Sheet
-            sendToGoogleSheet(newLog);
+            // ส่งข้อมูลไปยัง Node.js Backend เพื่อเซฟลง SQL Server จริงๆ
+            sendToBackend(newLog);
 
             logSQLServer(`INSERT INTO CartLogs (CartID, ReaderLocation, ActionType, RSSI) VALUES ('${cart.id}', 'GATE_A_CEILING', '${cart.status}', '${rssi} dBm');`);
             logSQLServer(`COMMIT; -- SUCCESS: Record updated successfully.`);
@@ -724,8 +724,8 @@
             };
             dbLogs.unshift(newLog);
             
-            // ส่งข้อมูลขึ้น Google Sheet
-            sendToGoogleSheet(newLog);
+            // ส่งข้อมูลไปยัง Node.js Backend เพื่อเซฟลง SQL Server จริงๆ
+            sendToBackend(newLog);
             
             logSQLServer(`-- No SQL Update performed on Carts table. Safety filter active.`);
             logSQLServer(` `);
@@ -871,13 +871,10 @@
             return d.toISOString().replace('T', ' ').substring(0, 19);
         }
 
-        // --- ฟังก์ชันสำหรับส่งข้อมูลไปยัง Google Sheet ---
-        function sendToGoogleSheet(logData) {
-            if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === 'ใส่_URL_WEB_APP_ของคุณที่นี่') return;
-            
-            fetch(GOOGLE_SCRIPT_URL, {
+        // --- ฟังก์ชันสำหรับส่งข้อมูลไปยัง Node.js (SQL Server Backend) ---
+        function sendToBackend(logData) {
+            fetch(LOCAL_API_URL, {
                 method: 'POST',
-                mode: 'no-cors', // ใช้โหมด no-cors เพื่อเลี่ยงปัญหาการบล็อกข้ามโดเมนจากฝั่งเบราว์เซอร์
                 headers: {
                     'Content-Type': 'application/json'
                 },
@@ -886,13 +883,14 @@
                     action: logData.action,
                     effect: logData.effect,
                     rssi: logData.rssi,
-                    time: logData.time.toLocaleString('th-TH')
+                    time: logData.time.toISOString()
                 })
-            }).then(() => {
-                console.log(`[Google Sheet] ส่งข้อมูล ${logData.cartId} สำเร็จ`);
-            }).catch(err => {
-                console.error("[Google Sheet] เกิดข้อผิดพลาด:", err);
-            });
+            }).then(response => response.json())
+              .then(data => {
+                  console.log(`[SQL Server] Data Synced:`, data);
+              }).catch(err => {
+                  console.error("[SQL Server] Connection Failed (ตรวจสอบว่ารัน server.js หรือยัง):", err);
+              });
         }
 
         function logSQLServer(message) {
