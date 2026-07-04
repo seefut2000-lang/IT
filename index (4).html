@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Data Portal - ระบบพิมพ์สติกเกอร์ติดกระสอบ</title>
+    
+    <!-- Tailwind CSS สำหรับตกแต่งเว็บ -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- SheetJS สำหรับอ่านไฟล์ Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <!-- Phosphor Icons สำหรับไอคอน -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- การตั้งค่า Tailwind CSS Configuration ที่ถูกต้องผ่านแบบ CDN -->
+    <script type="tailwind-config">
+        {
+            theme: {
+                extend: {
+                    colors: {
+                        corporate: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            800: '#075985',
+                            900: '#0c4a6e'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Prompt"', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Prompt', sans-serif; }
+        
+        /* เพิ่มการตกแต่ง Scrollbar ให้สวยงามและมองเห็นได้ชัดเจนขึ้น แทนการซ่อน */
+        ::-webkit-scrollbar {
+            height: 12px; /* ความหนาของแถบเลื่อนแนวนอน */
+            width: 12px;  /* ความหนาของแถบเลื่อนแนวตั้ง */
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 8px;
+            border: 3px solid #f1f5f9; /* เว้นขอบนิดหน่อยให้ดูมนๆ */
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="bg-corporate-900 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-2">
+                    <i class="ph ph-tag text-3xl text-corporate-500"></i>
+                    <span class="font-bold text-xl tracking-tight">DataBiz Pro</span>
+                    <span class="bg-corporate-800 text-corporate-500 text-xs px-2 py-0.5 rounded ml-2 font-normal hidden sm:inline">Bag Label Creator</span>
+                </div>
+                <div class="hidden md:flex space-x-4">
+                    <a href="#" class="hover:bg-corporate-800 px-3 py-2 rounded-md text-sm font-medium transition">หน้าแรก</a>
+                    <a href="#" class="bg-corporate-600 hover:bg-corporate-500 px-3 py-2 rounded-md text-sm font-medium transition">นำเข้าข้อมูล</a>
+                </div>
+                <!-- Mobile menu button -->
+                <div class="md:hidden flex items-center">
+                    <button class="text-gray-300 hover:text-white focus:outline-none">
+                        <i class="ph ph-list text-2xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        
+        <!-- Header Section -->
+        <div class="mb-8 text-center md:text-left">
+            <h1 class="text-3xl font-bold text-gray-900 tracking-tight">ระบบจัดทำสติกเกอร์ติดกระสอบ</h1>
+            <p class="mt-2 text-gray-600">อัปโหลดไฟล์ Excel เพื่อแปลงข้อมูลเป็นสติกเกอร์ติดกระสอบ ตัวหนังสือใหญ่ชัดเจน เรียงคู่ 2 แถวสำหรับตัดแบ่ง</p>
+        </div>
+
+        <!-- Notification Message Box (Hidden by default) -->
+        <div id="message-box" class="hidden mb-6 p-4 rounded-lg flex items-center gap-3">
+            <i id="message-icon" class="text-2xl"></i>
+            <span id="message-text" class="font-medium"></span>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-100 mb-8">
+            <div class="flex flex-col lg:flex-row items-center gap-6">
+                
+                <div class="flex-1 w-full border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-corporate-500 hover:bg-corporate-50 transition cursor-pointer relative" id="drop-zone">
+                    <input type="file" id="excel-file" accept=".xlsx, .xls" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                    <i class="ph ph-file-xls text-5xl text-emerald-600 mb-3"></i>
+                    <h3 class="text-lg font-semibold text-gray-700">ลากไฟล์ Excel มาวางที่นี่ หรือ คลิกเพื่อเลือกไฟล์</h3>
+                    <p class="text-sm text-gray-500 mt-1">ระบบจะตรวจสอบคอลัมน์และสร้างฟอร์มสติกเกอร์ให้อัตโนมัติ</p>
+                    <p id="file-name-display" class="mt-4 text-corporate-600 font-medium hidden"></p>
+                </div>
+
+                <div class="w-full lg:w-1/3 bg-gray-50 p-6 rounded-xl border border-gray-200">
+                    <h4 class="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                        <i class="ph ph-info text-amber-500 text-lg"></i> วิธีใช้งานป้ายติดกระสอบ
+                    </h4>
+                    <ul class="text-xs text-gray-600 space-y-2 list-disc list-inside">
+                        <li>ระบบจะอ่านหัวตารางและคอลัมน์ให้อัตโนมัติ จากนั้นให้ติ๊กเลือกแถวที่ต้องการพิมพ์ในตารางด้านล่าง</li>
+                        <li><b>แนะนำ:</b> พิมพ์ป้ายออกทางกระดาษสติกเกอร์แบบ A4 แล้วนำกรรไกรหรือเครื่องกรีดมาตัดแบ่งแนวเส้นปรุ</li>
+                        <li>ข้อมูลประมวลผลบนเบราว์เซอร์ 100% มีความปลอดภัยและเป็นส่วนตัวสูง</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sheet Selector Panel (Hidden until file is uploaded and has more than 1 sheet) -->
+        <div id="sheet-select-panel" class="hidden bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 flex flex-col sm:flex-row sm:items-center gap-3">
+            <label for="sheet-select" class="text-sm font-semibold text-gray-700 flex items-center gap-2 shrink-0">
+                <i class="ph ph-stack text-corporate-600"></i> เลือกชีตที่ต้องการใช้งาน (พบหลายชีตในไฟล์นี้)
+            </label>
+            <select id="sheet-select" class="flex-1 bg-gray-50 border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-corporate-500 focus:border-corporate-500">
+                <!-- รายชื่อชีตจะสร้างที่นี่ -->
+            </select>
+        </div>
+
+        <!-- Data Display Table (Hidden until file is uploaded) -->
+        <div id="view-table" class="hidden bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex flex-wrap justify-between items-center gap-4">
+                <div class="flex items-center gap-3 flex-wrap">
+                    <h3 class="font-semibold text-lg text-gray-800 flex items-center gap-2">
+                        <i class="ph ph-table text-corporate-600"></i> ตารางแสดงข้อมูลรายการสินค้าในระบบ
+                    </h3>
+                    <span id="row-count" class="text-sm bg-corporate-100 text-corporate-800 py-1 px-3 rounded-full font-medium"></span>
+                    <label id="hidden-rows-control" class="hidden items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 py-1.5 px-3 rounded-full cursor-pointer">
+                        <input type="checkbox" id="skip-hidden-rows-checkbox" checked class="rounded border-amber-400 text-amber-600 focus:ring-amber-500">
+                        <span id="hidden-rows-count-text">ข้ามแถวที่ถูกซ่อน/กรองไว้ในไฟล์ Excel</span>
+                    </label>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button id="btn-select-all" type="button" class="text-xs text-corporate-700 border border-corporate-200 bg-white hover:bg-corporate-50 px-3 py-2.5 rounded-lg font-semibold transition">เลือกทุกแถวที่แสดงอยู่</button>
+                    <button id="btn-select-none" type="button" class="text-xs text-gray-600 border border-gray-200 bg-white hover:bg-gray-50 px-3 py-2.5 rounded-lg font-semibold transition">ล้างการเลือก</button>
+                    <button id="btn-print-custom" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition flex items-center gap-2 shadow-lg shadow-red-600/30 ring-2 ring-red-300 ring-offset-1">
+                        <i class="ph-fill ph-printer text-xl"></i> พิมพ์แถวที่เลือก
+                    </button>
+                </div>
+            </div>
+            <p class="px-6 pt-3 text-xs text-gray-500">💡 ติ๊กเลือกแถวที่ต้องการพิมพ์ในช่องด้านซ้ายของแต่ละแถว และตั้งค่า "จำนวน" หากต้องการสติกเกอร์รายการเดิมหลายใบ (เช่นใส่ 5 หากต้องการ 5 ใบจากแถวเดียวกัน) แล้วกด "พิมพ์แถวที่เลือก" เพื่อพิมพ์หลายแถวพร้อมกัน หรือกดปุ่มพิมพ์ 🖨️ ที่ท้ายแต่ละแถวเพื่อพิมพ์เฉพาะแถวนั้นทันที — ระบบจะแสดง รหัส/ตัวย่อ/วันหมดอายุ บนสติกเกอร์ให้อัตโนมัติ</p>
+            
+            <!-- ตารางแสดงผลที่มีการเพิ่มแถบเลื่อน (Scrollbar) ทั้งในแนวนอนและแนวตั้ง -->
+            <div class="overflow-x-auto max-h-[600px] overflow-y-auto relative pb-2 mt-2">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-100 sticky top-0 shadow-sm z-10" id="table-head">
+                        <!-- หัวตารางจะถูกสร้างที่นี่ -->
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200" id="table-body">
+                        <!-- ข้อมูลจะถูกสร้างที่นี่ -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="empty-state" class="hidden p-10 text-center text-gray-500">
+                ไม่มีข้อมูลในไฟล์นี้ หรือรูปแบบไฟล์ไม่ถูกต้อง
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Custom Modal (แจ้งเตือนผู้ใช้แทนการใช้ Alert) -->
+    <div id="custom-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden transform transition-all">
+            <div class="p-6">
+                <div class="flex items-center gap-3 mb-4">
+                    <div id="modal-icon-container" class="p-2 rounded-full">
+                        <i id="modal-icon" class="text-2xl"></i>
+                    </div>
+                    <h3 id="modal-title" class="text-lg font-bold text-gray-900"></h3>
+                </div>
+                <p id="modal-body" class="text-sm text-gray-600 leading-relaxed"></p>
+            </div>
+            <div class="bg-gray-50 px-6 py-4 flex justify-end">
+                <button id="modal-close-btn" class="bg-corporate-600 hover:bg-corporate-500 text-white px-5 py-2 rounded-lg text-sm font-medium transition">ตกลง</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-sm text-gray-500">
+            ระบบทำงานผ่าน Browser เท่านั้น
+        </div>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const fileInput = document.getElementById('excel-file');
+            const dropZone = document.getElementById('drop-zone');
+            const fileNameDisplay = document.getElementById('file-name-display');
+            const tableHead = document.getElementById('table-head');
+            const tableBody = document.getElementById('table-body');
+            const rowCount = document.getElementById('row-count');
+            const emptyState = document.getElementById('empty-state');
+            const messageBox = document.getElementById('message-box');
+            const messageIcon = document.getElementById('message-icon');
+            const messageText = document.getElementById('message-text');
+            const btnPrintCustom = document.getElementById('btn-print-custom');
+            const btnSelectAll = document.getElementById('btn-select-all');
+            const btnSelectNone = document.getElementById('btn-select-none');
+
+            // View Table
+            const viewTable = document.getElementById('view-table');
+            const hiddenRowsControl = document.getElementById('hidden-rows-control');
+            const skipHiddenRowsCheckbox = document.getElementById('skip-hidden-rows-checkbox');
+            const hiddenRowsCountText = document.getElementById('hidden-rows-count-text');
+
+            // Sheet Selector (รองรับไฟล์ที่มีหลายชีต)
+            const sheetSelectPanel = document.getElementById('sheet-select-panel');
+            const sheetSelect = document.getElementById('sheet-select');
+
+            // ส่วนประกอบสำหรับ Custom Modal
+            const customModal = document.getElementById('custom-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body');
+            const modalIcon = document.getElementById('modal-icon');
+            const modalIconContainer = document.getElementById('modal-icon-container');
+            const modalCloseBtn = document.getElementById('modal-close-btn');
+
+            let globalWorkbook = null;      // เก็บ workbook ทั้งไฟล์ไว้ เผื่อผู้ใช้สลับไปอ่านชีตอื่น
+            let globalExcelData = null;     // ข้อมูลดิบทั้งหมดของชีตปัจจุบัน (array of arrays)
+            let globalHiddenRows = new Set(); // แถว (0-indexed ตรงกับ globalExcelData) ที่ถูกซ่อน/กรองไว้ใน Excel ต้นฉบับ
+            let headerRowIndex = 0;         // แถวหัวตารางที่ตรวจจับได้อัตโนมัติ (0-indexed)
+            let headers = [];               // หัวตารางปัจจุบัน
+            let printFields = [];           // ฟิลด์ที่จะแสดงบนสติกเกอร์ (คำนวณอัตโนมัติจากชื่อคอลัมน์ ไม่ต้องตั้งค่าเอง)
+            let businessColumnIndices = []; // ดัชนีคอลัมน์ทั้งหมดที่จัดหมวดหมู่ได้ (ชื่อ/รหัส/ตัวย่อ/Batch/EXP) ใช้เช็คว่าแถวไหนเป็นข้อมูลจริง
+            let expColumnIndices = [];      // ดัชนีคอลัมน์วันหมดอายุ ใช้กรองแสดงเฉพาะแถวที่มีวันหมดอายุจริง
+            let selectedPrintRows = new Set(); // originalIndex ของแถวที่ผู้ใช้ติ๊กเลือกไว้เพื่อพิมพ์
+            let printQuantities = new Map();   // originalIndex -> จำนวนสำเนาที่ต้องการพิมพ์ต่อแถว (ค่าเริ่มต้น 1)
+
+            // ฟังก์ชันปิด Modal
+            modalCloseBtn.addEventListener('click', () => {
+                customModal.classList.add('hidden');
+            });
+
+            // ฟังก์ชันแสดง Modal แจ้งเตือนสวยๆ แทน Alert
+            function showCustomModal(title, text, type = 'error') {
+                modalTitle.textContent = title;
+                modalBody.textContent = text;
+                
+                if (type === 'error') {
+                    modalIconContainer.className = 'p-2 rounded-full bg-red-100 text-red-600';
+                    modalIcon.className = 'ph ph-warning-circle';
+                    modalCloseBtn.className = 'bg-red-600 hover:bg-red-500 text-white px-5 py-2 rounded-lg text-sm font-medium transition';
+                } else if (type === 'warning') {
+                    modalIconContainer.className = 'p-2 rounded-full bg-amber-100 text-amber-600';
+                    modalIcon.className = 'ph ph-warning';
+                    modalCloseBtn.className = 'bg-amber-600 hover:bg-amber-500 text-white px-5 py-2 rounded-lg text-sm font-medium transition';
+                } else {
+                    modalIconContainer.className = 'p-2 rounded-full bg-green-100 text-green-600';
+                    modalIcon.className = 'ph ph-check-circle';
+                    modalCloseBtn.className = 'bg-corporate-600 hover:bg-corporate-500 text-white px-5 py-2 rounded-lg text-sm font-medium transition';
+                }
+                customModal.classList.remove('hidden');
+            }
+
+            // จัดการ Event การเลือกไฟล์
+            fileInput.addEventListener('change', handleFileSelect);
+
+            // จัดการ Drag & Drop
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('bg-corporate-50', 'border-corporate-500');
+            });
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('bg-corporate-50', 'border-corporate-500');
+            });
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('bg-corporate-50', 'border-corporate-500');
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    fileInput.files = e.dataTransfer.files;
+                    handleFileSelect({ target: fileInput });
+                }
+            });
+
+            function showMessage(type, text) {
+                messageBox.classList.remove('hidden', 'bg-red-50', 'text-red-700', 'bg-green-50', 'text-green-700');
+                if (type === 'error') {
+                    messageBox.classList.add('bg-red-50', 'text-red-700');
+                    messageIcon.className = 'ph-fill ph-warning-circle text-2xl text-red-500';
+                } else if (type === 'success') {
+                    messageBox.classList.add('bg-green-50', 'text-green-700');
+                    messageIcon.className = 'ph-fill ph-check-circle text-2xl text-green-500';
+                }
+                messageText.textContent = text;
+            }
+
+            function handleFileSelect(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                // ตรวจสอบนามสกุลไฟล์
+                const validExts = ['.xlsx', '.xls'];
+                const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+                
+                if (!validExts.includes(fileExt)) {
+                    showMessage('error', 'กรุณาอัปโหลดไฟล์ Excel (.xlsx หรือ .xls) เท่านั้น');
+                    return;
+                }
+
+                fileNameDisplay.textContent = `ไฟล์ที่เลือก: ${file.name}`;
+                fileNameDisplay.classList.remove('hidden');
+                
+                // อ่านไฟล์ด้วย FileReader
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        globalWorkbook = XLSX.read(data, {type: 'array'});
+
+                        // สร้างตัวเลือกชีตทั้งหมดในไฟล์ (แสดงเฉพาะเมื่อมีมากกว่า 1 ชีต)
+                        sheetSelect.innerHTML = '';
+                        globalWorkbook.SheetNames.forEach((name) => {
+                            const opt = document.createElement('option');
+                            opt.value = name;
+                            opt.textContent = name;
+                            sheetSelect.appendChild(opt);
+                        });
+
+                        if (globalWorkbook.SheetNames.length > 1) {
+                            sheetSelectPanel.classList.remove('hidden');
+                        } else {
+                            sheetSelectPanel.classList.add('hidden');
+                        }
+
+                        // โหลดชีตแรกเป็นค่าเริ่มต้นเสมอเมื่ออัปโหลดไฟล์ใหม่
+                        sheetSelect.value = globalWorkbook.SheetNames[0];
+                        loadSheet(globalWorkbook.SheetNames[0]);
+                    } catch (error) {
+                        console.error(error);
+                        showMessage('error', 'เกิดข้อผิดพลาดในการอ่านไฟล์ โปรดตรวจสอบความถูกต้องของโครงสร้างไฟล์');
+                    }
+                };
+
+                reader.readAsArrayBuffer(file);
+            }
+
+            // --- โหลดข้อมูลจากชีตที่ระบุ (ใช้ทั้งตอนอัปโหลดไฟล์ครั้งแรก และตอนสลับชีตภายในไฟล์เดียวกัน) ---
+            function loadSheet(sheetName) {
+                if (!globalWorkbook) return;
+                try {
+                    const worksheet = globalWorkbook.Sheets[sheetName];
+
+                    // ดึงข้อมูลในรูปแบบข้อความ (raw: false) ป้องกันปัญหาวันที่เพี้ยนเป็นตัวเลขดิบของ Excel
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1, defval: "", raw: false});
+
+                    globalExcelData = jsonData;
+
+                    // ตรวจจับแถวที่ถูกซ่อน/กรองไว้ใน Excel ต้นฉบับ (เช่น ใช้ Filter ซ่อนบางแถว) จาก metadata ของ worksheet
+                    globalHiddenRows = new Set();
+                    const rowsMeta = worksheet['!rows'];
+                    if (rowsMeta) {
+                        rowsMeta.forEach((rowInfo, idx) => {
+                            if (rowInfo && rowInfo.hidden) globalHiddenRows.add(idx);
+                        });
+                    }
+                    if (globalHiddenRows.size > 0) {
+                        hiddenRowsControl.classList.remove('hidden');
+                        hiddenRowsControl.classList.add('flex');
+                        hiddenRowsCountText.textContent = `พบ ${globalHiddenRows.size} แถวที่ถูกซ่อน/กรองไว้ — ข้ามไม่พิมพ์แถวเหล่านี้`;
+                        skipHiddenRowsCheckbox.checked = true; // ค่าเริ่มต้น: ข้ามแถวที่ซ่อนไว้ ให้ตรงกับสิ่งที่มองเห็นใน Excel
+                    } else {
+                        hiddenRowsControl.classList.add('hidden');
+                        hiddenRowsControl.classList.remove('flex');
+                    }
+
+                    // ชีตใหม่ -> ตรวจจับหัวตารางและฟิลด์สำหรับพิมพ์ใหม่อัตโนมัติ พร้อมล้างแถวที่เคยเลือกไว้พิมพ์
+                    headerRowIndex = detectHeaderRow(jsonData);
+                    headers = jsonData[headerRowIndex] || [];
+                    printFields = buildPrintFields(headers);
+                    selectedPrintRows = new Set();
+                    printQuantities = new Map();
+
+                    viewTable.classList.remove('hidden');
+                    renderTable();
+
+                    showMessage('success', `ดึงหัวข้อข้อมูลสำเร็จจากชีต: ${sheetName}`);
+                } catch (error) {
+                    console.error(error);
+                    showMessage('error', 'เกิดข้อผิดพลาดในการอ่านชีตนี้ โปรดตรวจสอบความถูกต้องของโครงสร้างข้อมูล');
+                }
+            }
+
+            // สลับชีต -> โหลดข้อมูลของชีตที่เลือกใหม่ทั้งหมด
+            sheetSelect.addEventListener('change', () => {
+                loadSheet(sheetSelect.value);
+            });
+
+            // --- ตรวจจับแถวหัวตารางอัตโนมัติ ---
+            // ใช้เกณฑ์แบบสัดส่วน: หัวตารางจริงมักมีข้อมูลเต็มแทบทุกคอลัมน์ ต่างจากแถวชื่อบริษัท/หัวข้อรายงาน
+            // ที่มักมีข้อมูลแค่ 1-2 ช่องเท่านั้น
+            function detectHeaderRow(data) {
+                const scanLimit = Math.min(data.length, 15);
+                const columnCount = data.slice(0, scanLimit).reduce((max, row) => Math.max(max, row ? row.length : 0), 0);
+                const relativeThreshold = Math.max(3, Math.floor(columnCount * 0.4));
+                const countNonEmpty = (row) => (row || []).filter(cell => cell !== undefined && cell !== null && cell.toString().trim() !== '').length;
+
+                for (let i = 0; i < scanLimit; i++) {
+                    if (countNonEmpty(data[i]) >= relativeThreshold) return i;
+                }
+                for (let i = 0; i < scanLimit; i++) {
+                    if (countNonEmpty(data[i]) >= 2) return i;
+                }
+                return 0;
+            }
+
+            // ตัดเลขในวงเล็บท้ายชื่อคอลัมน์ออก เช่น "Batch (1)" -> "Batch" เพื่อจัดกลุ่มคอลัมน์ที่เป็นชุดเดียวกัน
+            function normalizeHeaderForGrouping(text) {
+                return text.replace(/\s*\(\s*\d+\s*\)\s*$/, '').trim();
+            }
+
+            // --- จัดหมวดหมู่ชื่อคอลัมน์ (หลังตัดวงเล็บท้าย) ให้ตรงกับฟิลด์มาตรฐานบนสติกเกอร์ ---
+            function classifyHeaderGroup(name) {
+                const n = name.toLowerCase();
+                if (n.includes('วันหมดอายุ') || n.includes('หมดอายุ') || n.includes('exp')) {
+                    return { category: 'exp', fontSize: 30, required: true, order: 6, prefix: '' };
+                }
+                if (n.includes('batch') && (n.includes('no') || n.includes('เลข'))) {
+                    return { category: 'batchno', fontSize: 18, required: false, order: 4, prefix: 'Batch: ' };
+                }
+                if (n === 'batch' || n.includes('ล็อต') || n.includes('lot')) {
+                    return { category: 'batch', fontSize: 18, required: false, order: 5, prefix: 'Lot: ' };
+                }
+                if (n.includes('รหัส') || n.includes('code')) {
+                    return { category: 'code', fontSize: 32, required: false, order: 2, prefix: '' };
+                }
+                if (n.includes('ตัวย่อ') || n === 'ย่อ') {
+                    return { category: 'abbr', fontSize: 26, required: false, order: 3, prefix: '' };
+                }
+                if (n.includes('ส่วนผสม') || n.includes('ชื่อสินค้า') || n.includes('product') || n.includes('item')) {
+                    return { category: 'name', fontSize: 26, required: false, order: 1, prefix: '' };
+                }
+                return null;
+            }
+
+            // --- สร้างรายการฟิลด์ที่จะแสดงบนสติกเกอร์โดยอัตโนมัติ จากชื่อคอลัมน์ในไฟล์ ---
+            // จับกลุ่มคอลัมน์ชื่อซ้ำ/คล้ายกัน (เช่น Batch No./Batch(1..3)/วันหมดอายุ x3) ให้รวมเป็นบรรทัดเดียว
+            // โดยเลือกค่าที่มีข้อมูลจริงในแต่ละแถวให้อัตโนมัติ ไม่ต้องตั้งค่าเอง
+            function buildPrintFields(headers) {
+                const nameGroups = {};
+                const groupOrder = [];
+                headers.forEach((header, index) => {
+                    const text = header !== undefined && header !== null ? header.toString().trim() : '';
+                    if (text === '') return;
+                    const normalized = normalizeHeaderForGrouping(text);
+                    if (normalized === '') return;
+                    if (!nameGroups[normalized]) {
+                        nameGroups[normalized] = [];
+                        groupOrder.push(normalized);
+                    }
+                    nameGroups[normalized].push(index);
+                });
+
+                const usedCategories = new Set();
+                const fields = [];
+
+                groupOrder.forEach((name) => {
+                    const info = classifyHeaderGroup(name);
+                    if (!info || usedCategories.has(info.category)) return;
+                    usedCategories.add(info.category);
+                    const idxs = nameGroups[name];
+                    fields.push({
+                        category: info.category,
+                        order: info.order,
+                        fontSize: info.fontSize,
+                        required: info.required,
+                        prefix: info.prefix,
+                        label: name,
+                        type: idxs.length > 1 ? 'combined' : 'single',
+                        index: idxs.length === 1 ? idxs[0] : null,
+                        indices: idxs.length > 1 ? idxs : null
+                    });
+                });
+
+                fields.sort((a, b) => a.order - b.order);
+
+                // เก็บดัชนีคอลัมน์ที่จัดหมวดหมู่ได้ทั้งหมด (รวมชื่อ/Batch/Lot ที่ไม่โชว์บนสติกเกอร์ด้วย)
+                // ไว้เช็คว่าแถวไหนเป็น "ข้อมูลจริง" ไม่ใช่แถวหัวตารางย่อยที่หลงเหลือมา (เช่น "สมบูรณ์/ไม่สมบูรณ์")
+                businessColumnIndices = [];
+                fields.forEach(f => {
+                    if (f.type === 'combined') businessColumnIndices.push(...f.indices);
+                    else businessColumnIndices.push(f.index);
+                });
+
+                expColumnIndices = [];
+                fields.forEach(f => {
+                    if (f.category !== 'exp') return;
+                    if (f.type === 'combined') expColumnIndices.push(...f.indices);
+                    else expColumnIndices.push(f.index);
+                });
+
+                // ตามที่ต้องการ: สติกเกอร์แสดงแค่ 3 อย่างพอ คือ รหัสส่วนผสม, ตัวย่อ, วันหมดอายุ (ไม่แสดงชื่อ/Batch/Lot)
+                const allowedOnSticker = ['code', 'abbr', 'exp'];
+                let finalFields = fields.filter(f => allowedOnSticker.includes(f.category));
+
+                // Fallback: ถ้าจับหมวดหมู่ที่ต้องการ (รหัส/ตัวย่อ/วันหมดอายุ) ไม่ได้เลยสักฟิลด์ ใช้ 3 คอลัมน์แรกที่มีชื่อเป็นค่าเริ่มต้น กันสติกเกอร์ว่างเปล่า
+                if (finalFields.length === 0) {
+                    const fallbackSizes = [32, 26, 20];
+                    let count = 0;
+                    for (let i = 0; i < headers.length && count < 3; i++) {
+                        const text = headers[i] !== undefined && headers[i] !== null ? headers[i].toString().trim() : '';
+                        if (text === '') continue;
+                        finalFields.push({ category: 'fallback', order: count + 1, fontSize: fallbackSizes[count], required: false, prefix: '', label: text, type: 'single', index: i, indices: null });
+                        businessColumnIndices.push(i);
+                        count++;
+                    }
+                }
+
+                return finalFields;
+            }
+
+            // สลับโหมด ข้าม/รวม แถวที่ถูกซ่อนไว้ -> รีเฟรชตารางแสดงผลใหม่ทันที
+            skipHiddenRowsCheckbox.addEventListener('change', () => {
+                renderTable();
+            });
+
+            // --- คืนรายการแถวที่ "กำลังแสดงอยู่จริง" ในตาราง (ตัดแถวว่างเปล่า และตัดแถวซ่อนตามตัวเลือกปัจจุบัน) ---
+            // ใช้ร่วมกันทั้ง renderTable, ปุ่มเลือกทั้งหมด และตอนพิมพ์ เพื่อไม่ให้ตรรกะกรองแถวเพี้ยนไปคนละที่
+            function getVisibleRowEntries() {
+                if (!globalExcelData) return [];
+                let rowEntries = globalExcelData.slice(headerRowIndex + 1)
+                    .map((row, i) => ({ row, originalIndex: headerRowIndex + 1 + i }))
+                    .filter(entry => entry.row && !entry.row.every(cell => cell === "" || cell === null || cell === undefined));
+
+                // ตัดแถว "หัวตารางย่อย" ที่หลงเหลือมา (เช่นแถวที่มีแค่คำว่า "สมบูรณ์"/"ไม่สมบูรณ์" ซึ่งเป็นหัวข้อย่อยของคอลัมน์สภาพกระสอบ
+                // ไม่ใช่ข้อมูลสินค้าจริง) โดยเช็คว่าแถวนี้ไม่มีค่าอยู่เลยในทุกคอลัมน์ที่จัดหมวดหมู่เป็นข้อมูลสินค้า (ชื่อ/รหัส/ตัวย่อ/Batch/EXP)
+                if (businessColumnIndices.length > 0) {
+                    rowEntries = rowEntries.filter(entry => {
+                        return businessColumnIndices.some(idx => {
+                            const v = entry.row[idx];
+                            return v !== undefined && v !== null && v.toString().trim() !== '';
+                        });
+                    });
+                }
+
+                // แสดงเฉพาะแถวที่มี "วันหมดอายุ" จริงเท่านั้น แถวที่ไม่มีวันหมดอายุเลย (ทุกช่อง Batch1/2/3) จะถูกซ่อนไปจากตาราง
+                if (expColumnIndices.length > 0) {
+                    rowEntries = rowEntries.filter(entry => {
+                        return expColumnIndices.some(idx => {
+                            const v = entry.row[idx];
+                            return v !== undefined && v !== null && v.toString().trim() !== '';
+                        });
+                    });
+                }
+
+                if (skipHiddenRowsCheckbox.checked && globalHiddenRows.size > 0) {
+                    rowEntries = rowEntries.filter(entry => !globalHiddenRows.has(entry.originalIndex));
+                }
+                return rowEntries;
+            }
+
+            // ปุ่ม "เลือกทุกแถวที่แสดงอยู่"
+            btnSelectAll.addEventListener('click', () => {
+                getVisibleRowEntries().forEach(entry => selectedPrintRows.add(entry.originalIndex));
+                renderTable();
+            });
+
+            // ปุ่ม "ล้างการเลือก"
+            btnSelectNone.addEventListener('click', () => {
+                selectedPrintRows.clear();
+                renderTable();
+            });
+
+            function renderTable() {
+                tableHead.innerHTML = '';
+                tableBody.innerHTML = '';
+
+                if (!globalExcelData || globalExcelData.length === 0) {
+                    emptyState.classList.remove('hidden');
+                    rowCount.textContent = '0 รายการ';
+                    return;
+                }
+
+                emptyState.classList.add('hidden');
+
+                const rowEntries = getVisibleRowEntries();
+                rowCount.textContent = `พบข้อมูล ${rowEntries.length} รายการ (เลือกพิมพ์ ${selectedPrintRows.size} แถว)`;
+
+                // สร้าง Thead
+                const trHead = document.createElement('tr');
+
+                const thCheck = document.createElement('th');
+                thCheck.className = 'px-4 py-3 text-left bg-gray-100 border-b';
+                thCheck.innerHTML = `<input type="checkbox" id="select-all-rows-checkbox" class="rounded border-gray-400 text-corporate-600 focus:ring-corporate-500" title="เลือก/ยกเลิกเลือกทุกแถวที่แสดงอยู่">`;
+                trHead.appendChild(thCheck);
+
+                const thNo = document.createElement('th');
+                thNo.className = 'px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-100 border-b';
+                thNo.textContent = '#';
+                trHead.appendChild(thNo);
+
+                const thQty = document.createElement('th');
+                thQty.className = 'px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-100 border-b whitespace-nowrap';
+                thQty.textContent = 'จำนวน (ชิ้น)';
+                trHead.appendChild(thQty);
+
+                const thAction = document.createElement('th');
+                thAction.className = 'px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-100 border-b whitespace-nowrap';
+                thAction.textContent = 'พิมพ์';
+                trHead.appendChild(thAction);
+
+                headers.forEach(headerText => {
+                    const th = document.createElement('th');
+                    th.className = 'px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-100 border-b whitespace-nowrap';
+                    th.textContent = headerText || '-';
+                    trHead.appendChild(th);
+                });
+                tableHead.appendChild(trHead);
+
+                const selectAllCheckbox = document.getElementById('select-all-rows-checkbox');
+
+                if (rowEntries.length === 0) {
+                    const tr = document.createElement('tr');
+                    const td = document.createElement('td');
+                    td.colSpan = headers.length + 4;
+                    td.className = 'px-6 py-8 text-center text-gray-500';
+                    td.textContent = 'ไม่มีข้อมูลในแถวถัดไป';
+                    tr.appendChild(td);
+                    tableBody.appendChild(tr);
+                    selectAllCheckbox.disabled = true;
+                    return;
+                }
+
+                selectAllCheckbox.checked = rowEntries.every(entry => selectedPrintRows.has(entry.originalIndex));
+                selectAllCheckbox.addEventListener('change', () => {
+                    if (selectAllCheckbox.checked) {
+                        rowEntries.forEach(entry => selectedPrintRows.add(entry.originalIndex));
+                    } else {
+                        rowEntries.forEach(entry => selectedPrintRows.delete(entry.originalIndex));
+                    }
+                    renderTable();
+                });
+
+                rowEntries.forEach((entry, index) => {
+                    const row = entry.row;
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-blue-50 transition duration-150';
+
+                    const tdCheck = document.createElement('td');
+                    tdCheck.className = 'px-4 py-4 whitespace-nowrap border-b border-gray-100';
+                    const cb = document.createElement('input');
+                    cb.type = 'checkbox';
+                    cb.className = 'row-select-checkbox rounded border-gray-400 text-corporate-600 focus:ring-corporate-500';
+                    cb.checked = selectedPrintRows.has(entry.originalIndex);
+                    cb.addEventListener('change', () => {
+                        if (cb.checked) {
+                            selectedPrintRows.add(entry.originalIndex);
+                        } else {
+                            selectedPrintRows.delete(entry.originalIndex);
+                        }
+                        rowCount.textContent = `พบข้อมูล ${rowEntries.length} รายการ (เลือกพิมพ์ ${selectedPrintRows.size} แถว)`;
+                        selectAllCheckbox.checked = rowEntries.every(en => selectedPrintRows.has(en.originalIndex));
+                    });
+                    tdCheck.appendChild(cb);
+                    tr.appendChild(tdCheck);
+
+                    const tdNo = document.createElement('td');
+                    tdNo.className = 'px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-400 border-b border-gray-100';
+                    tdNo.textContent = index + 1;
+                    tr.appendChild(tdNo);
+
+                    const tdQty = document.createElement('td');
+                    tdQty.className = 'px-4 py-4 whitespace-nowrap border-b border-gray-100';
+                    const qtyInput = document.createElement('input');
+                    qtyInput.type = 'number';
+                    qtyInput.min = '1';
+                    qtyInput.value = printQuantities.get(entry.originalIndex) || 1;
+                    qtyInput.className = 'w-20 border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-center focus:ring-corporate-500 focus:border-corporate-500';
+                    qtyInput.title = 'จำนวนสำเนาที่ต้องการพิมพ์สำหรับแถวนี้ (เช่น ต้องการสติกเกอร์รายการนี้ 5 ใบ ให้ใส่ 5)';
+                    qtyInput.addEventListener('change', () => {
+                        let v = parseInt(qtyInput.value, 10);
+                        if (!v || v < 1) v = 1;
+                        qtyInput.value = v;
+                        printQuantities.set(entry.originalIndex, v);
+                    });
+                    tdQty.appendChild(qtyInput);
+                    tr.appendChild(tdQty);
+
+                    const tdAction = document.createElement('td');
+                    tdAction.className = 'px-4 py-4 whitespace-nowrap border-b border-gray-100';
+                    const btnRowPrint = document.createElement('button');
+                    btnRowPrint.type = 'button';
+                    btnRowPrint.className = 'bg-red-600 hover:bg-red-700 text-white p-2.5 rounded-lg transition flex items-center justify-center shadow-md shadow-red-600/30';
+                    btnRowPrint.title = 'พิมพ์สติกเกอร์เฉพาะแถวนี้';
+                    btnRowPrint.innerHTML = '<i class="ph-fill ph-printer text-lg"></i>';
+                    btnRowPrint.addEventListener('click', () => {
+                        const qty = printQuantities.get(entry.originalIndex) || 1;
+                        printStickerRows(Array(qty).fill(entry.row));
+                    });
+                    tdAction.appendChild(btnRowPrint);
+                    tr.appendChild(tdAction);
+
+                    for (let i = 0; i < headers.length; i++) {
+                        const td = document.createElement('td');
+                        td.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-700 border-b border-gray-100';
+
+                        let cellValue = row[i];
+                        if (cellValue === undefined || cellValue === null || cellValue === "") {
+                            td.innerHTML = '<span class="text-gray-300">-</span>';
+                        } else {
+                            if (typeof cellValue === 'number' && !Number.isInteger(cellValue)) {
+                                td.textContent = cellValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                            } else {
+                                td.textContent = cellValue;
+                            }
+                        }
+                        tr.appendChild(td);
+                    }
+                    tableBody.appendChild(tr);
+                });
+            }
+
+            // --- ฟังก์ชันกลางสำหรับพิมพ์สติกเกอร์: รับอาร์เรย์ของแถวข้อมูล (rows) แล้วสร้างหน้าต่างสั่งพิมพ์ ---
+            // ใช้ร่วมกันทั้งปุ่ม "พิมพ์แถวที่เลือก" (หลายแถว) และปุ่มพิมพ์รายแถว (แถวเดียว)
+            function printStickerRows(dataRows) {
+                if (printFields.length === 0) {
+                    showCustomModal('ไม่พบคอลัมน์ที่ใช้พิมพ์ได้', 'ไม่สามารถระบุคอลัมน์ที่เหมาะสมสำหรับพิมพ์บนสติกเกอร์จากไฟล์นี้ได้', 'warning');
+                    return;
+                }
+
+                if (dataRows.length === 0) {
+                    showCustomModal('ไม่มีข้อมูลสำหรับพิมพ์', 'แถวที่เลือกไว้ไม่ปรากฏอยู่ในรายการที่แสดงอยู่แล้ว (อาจถูกซ่อน/กรองออกไป) โปรดเลือกแถวใหม่', 'warning');
+                    return;
+                }
+
+                // สร้างเอกสาร HTML หน้าใหม่สำหรับส่งพิมพ์เป็นป้ายคู่ 2 แถวแบบสติกเกอร์ติดกระสอบ
+                let printHTML = `
+                    <!DOCTYPE html>
+                    <html lang="th">
+                    <head>
+                        <meta charset="UTF-8">
+                        <title>พิมพ์สติกเกอร์ติดกระสอบ 2 แถว</title>
+                        <style>
+                            @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&display=swap');
+                            
+                            * {
+                                box-sizing: border-box;
+                            }
+                            
+                            body { 
+                                font-family: 'Sarabun', sans-serif; 
+                                padding: 20px; 
+                                color: #000; 
+                                background-color: #fff;
+                                margin: 0;
+                            }
+
+                            .header-container {
+                                text-align: center;
+                                margin-bottom: 25px;
+                                border-bottom: 2px solid #e2e8f0;
+                                padding-bottom: 15px;
+                            }
+
+                            h2 { 
+                                color: #1e293b; 
+                                font-size: 20px;
+                                margin: 0 0 5px 0; 
+                            }
+                            
+                            .subtitle {
+                                font-size: 12px;
+                                color: #64748b;
+                                margin: 0;
+                            }
+
+                            /* แต่ละ "หน้ากระดาษแนวนอน" มีสติกเกอร์แนวนอนวางติดกันข้างๆกัน 2 ใบ (แผ่นละ 2 แถว) */
+                            .print-page {
+                                display: flex;
+                                flex-direction: row;
+                                flex-wrap: nowrap;
+                                justify-content: center;
+                                align-items: center;
+                                gap: 12mm;
+                                width: 100%;
+                                page-break-after: always;
+                                break-after: page;
+                            }
+                            .print-page:last-child {
+                                page-break-after: auto;
+                                break-after: auto;
+                            }
+
+                            /* การ์ดสติกเกอร์แนวนอน (กว้างมากกว่าสูง) */
+                            .sticker-card {
+                                border: 1px dashed #7f8c8d; /* ขอบรอยประสำหรับกรีดตัด */
+                                padding: 10mm 12mm;
+                                background-color: #fff;
+                                text-align: center;
+                                display: flex;
+                                flex-direction: column;
+                                justify-content: center;
+                                align-items: center;
+                                flex: 0 0 auto;
+                                width: 125mm;      /* กว้าง */
+                                height: 90mm;      /* เตี้ยกว่ากว้าง = ทรงแนวนอน */
+                                box-sizing: border-box;
+                                page-break-inside: avoid;
+                                break-inside: avoid;
+                            }
+
+                            /* แต่ละบรรทัดบนสติกเกอร์: ระบบจัดฟิลด์และขนาดฟอนต์ให้อัตโนมัติตามชื่อคอลัมน์ */
+                            .sticker-line {
+                                font-weight: 700;
+                                line-height: 1.2;
+                                margin-bottom: 8px;
+                                color: #000;
+                                word-break: break-word;
+                                max-width: 100%;
+                            }
+                            .sticker-line:first-child {
+                                font-weight: 800;
+                                letter-spacing: 0.5px;
+                            }
+                            .sticker-line:last-child {
+                                margin-bottom: 0;
+                            }
+
+                            /* จัดแต่งหน้าเมื่อทำการสั่งพิมพ์จริงๆ */
+                            @media print {
+                                .header-container {
+                                    display: none; /* ซ่อนหัวเว็บเมื่อทำการปริ้น */
+                                }
+                                body {
+                                    padding: 0;
+                                }
+                                @page { 
+                                    size: A4 landscape;
+                                    margin: 10mm; 
+                                }
+                                .sticker-card {
+                                    border: 1px dashed #7f8c8d; /* รักษาเส้นรอยตัดประเอาไว้ตอนปริ้น */
+                                }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="header-container">
+                            <h2>ตัวอย่างสติกเกอร์สไตล์ติดกระสอบสินค้า (เรียงคู่ 2 แถว)</h2>
+                            <p class="subtitle">พิมพ์ทั้งหมด ${dataRows.length} แถวที่เลือกไว้ — จัดฟิลด์บนสติกเกอร์ให้อัตโนมัติตามชื่อคอลัมน์ในไฟล์ (สูงสุด 2 ใบต่อแผ่นกระดาษ)</p>
+                        </div>
+                `;
+
+                // ฟังก์ชันช่วย escape ค่าข้อมูลก่อนแทรกลง HTML กันอักขระพิเศษ (< > &) ทำโครงสร้างเพี้ยน
+                const escapeHtml = (val) => {
+                    return val.toString()
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;');
+                };
+
+                // ประมวลผลและสร้างสติกเกอร์ตามแถวที่เลือกไว้ (รวมสำเนาตามจำนวนที่ระบุ) โดยใช้ฟิลด์ที่ระบบจัดให้อัตโนมัติ
+                const stickerCards = []; // เก็บ HTML ของสติกเกอร์แต่ละใบไว้ก่อน เพื่อนำไปจัดหน้าละ 2 ใบทีหลัง
+                dataRows.forEach((row) => {
+                    let linesHTML = '';
+                    let missingRequiredField = false; // true หากฟิลด์บังคับ (เช่นวันหมดอายุ) ไม่มีข้อมูลในแถวนี้
+
+                    printFields.forEach((col) => {
+                        let cellVal = '';
+                        if (col.type === 'combined') {
+                            // ฟิลด์รวม: ไล่หาค่าที่มีข้อมูลจริงตัวแรกจากกลุ่มคอลัมน์ที่ผูกกันไว้ (เช่น Batch No. กลุ่ม 1/2/3)
+                            for (const idx of col.indices) {
+                                const v = row[idx];
+                                if (v !== undefined && v !== null && v.toString().trim() !== '') {
+                                    cellVal = v;
+                                    break;
+                                }
+                            }
+                        } else {
+                            cellVal = row[col.index];
+                        }
+                        const hasVal = cellVal !== undefined && cellVal !== null && cellVal.toString().trim() !== '';
+                        if (!hasVal) {
+                            if (col.required) missingRequiredField = true;
+                            return;
+                        }
+                        const fontSize = col.fontSize || 20;
+                        const prefix = col.prefix || '';
+                        linesHTML += `<div class="sticker-line" style="font-size:${fontSize}px;">${prefix}${escapeHtml(cellVal)}</div>`;
+                    });
+
+                    // ข้ามทั้งสติกเกอร์ หากฟิลด์บังคับ (เช่นวันหมดอายุ) ไม่มีข้อมูลในแถวนี้
+                    if (missingRequiredField) return;
+
+                    // ข้ามแถวที่ไม่มีข้อมูลเลยสักบรรทัด (ไม่พิมพ์สติกเกอร์เปล่า)
+                    if (linesHTML === '') return;
+
+                    stickerCards.push(`
+                        <div class="sticker-card">
+                            ${linesHTML}
+                        </div>
+                    `);
+                });
+
+                // จัดสติกเกอร์เป็นหน้าละ 2 ใบ วางติดกันข้างๆกัน (แนวนอน) แต่ละหน้าตัดขึ้นกระดาษ A4 ใหม่
+                for (let i = 0; i < stickerCards.length; i += 2) {
+                    const pair = stickerCards.slice(i, i + 2).join('');
+                    printHTML += `<div class="print-page">${pair}</div>`;
+                }
+
+                printHTML += `
+                        <script>
+                            window.onload = function() {
+                                setTimeout(() => {
+                                    window.print();
+                                    window.close();
+                                }, 500);
+                            };
+                        <\/script>
+                    </body>
+                    </html>
+                `;
+
+                // เปิดแท็บใหม่เพื่อสั่งพิมพ์สติกเกอร์ออกมา
+                const printWindow = window.open('', '_blank');
+                if (printWindow) {
+                    printWindow.document.write(printHTML);
+                    printWindow.document.close();
+                } else {
+                    showCustomModal(
+                        'เบราว์เซอร์บล็อกการพิมพ์', 
+                        'หน้าต่างสั่งพิมพ์ของเบราว์เซอร์ถูกระงับชั่วคราว (Pop-up Blocked) โปรดเลือก "อนุญาตการเปิดป๊อปอัพ" เพื่อดำเนินการพิมพ์สติกเกอร์กระสอบ', 
+                        'warning'
+                    );
+                }
+            }
+
+            // --- ปุ่ม "พิมพ์แถวที่เลือก": พิมพ์ทุกแถวที่ผู้ใช้ติ๊กเลือกไว้ในตาราง (รวมจำนวนสำเนาต่อแถว) ---
+            btnPrintCustom.addEventListener('click', () => {
+                if (!globalExcelData || globalExcelData.length < 2) return;
+
+                if (selectedPrintRows.size === 0) {
+                    showCustomModal(
+                        'ยังไม่ได้เลือกแถวที่จะพิมพ์',
+                        'โปรดติ๊กเลือกอย่างน้อย 1 แถวในตารางด้านล่าง (ช่องติ๊กด้านซ้ายสุดของแต่ละแถว) ก่อนสั่งพิมพ์',
+                        'warning'
+                    );
+                    return;
+                }
+
+                const dataRows = getVisibleRowEntries()
+                    .filter(entry => selectedPrintRows.has(entry.originalIndex))
+                    .flatMap(entry => {
+                        const qty = printQuantities.get(entry.originalIndex) || 1;
+                        return Array(qty).fill(entry.row); // ทำซ้ำแถวตามจำนวนสำเนาที่ผู้ใช้ระบุ เพื่อพิมพ์สติกเกอร์หลายใบจากรายการเดิม
+                    });
+
+                printStickerRows(dataRows);
+            });
+        });
+    </script>
+</body>
+</html>
