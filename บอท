@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS AI - ULTIMATE WINGMAN V4</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Google Fonts: Chakra Petch & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { 
+            font-family: 'Chakra Petch', sans-serif;
+            background-color: #030303; 
+            color: #00ffcc; 
+            transition: filter 0.1s;
+        }
+        .mono-font { font-family: 'JetBrains Mono', monospace; }
+        
+        /* ซ่อน Scrollbar */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* ตกแต่งเนื้อหา Markdown สไตล์ Cyberpunk Terminal */
+        .markdown-body { color: #cbd5e1; }
+        .markdown-body h1, .markdown-body h2, .markdown-body h3 {
+            font-weight: 700; margin-top: 1.25em; margin-bottom: 0.5em; color: #00ffcc;
+            text-shadow: 0 0 8px rgba(0, 255, 204, 0.4);
+            text-transform: uppercase; letter-spacing: 1.5px;
+            font-family: 'Chakra Petch', sans-serif;
+        }
+        .markdown-body p { margin-bottom: 0.75em; line-height: 1.6; }
+        .markdown-body ul, .markdown-body ol { padding-left: 1.5em; margin-bottom: 1em; }
+        .markdown-body ul { list-style-type: square; }
+        .markdown-body ul li::marker { color: #00ffcc; }
+        .markdown-body code {
+            background-color: #0d0d0d; padding: 0.2em 0.4em; border-radius: 0.25rem; 
+            font-family: 'JetBrains Mono', monospace; color: #facc15; border: 1px solid #222;
+        }
+        .markdown-body pre {
+            background-color: #050505; padding: 1.25em; border-radius: 0.5rem; overflow-x: auto; 
+            margin-bottom: 1.25em; border-left: 4px solid #00ffcc; border-top: 1px solid #222; border-right: 1px solid #222; border-bottom: 1px solid #222;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            position: relative;
+        }
+        .markdown-body pre code { background-color: transparent; padding: 0; color: #38bdf8; border: none; }
+
+        /* แอนิเมชัน Pulse สัญญาณแกน */
+        @keyframes core-glow {
+            0% { box-shadow: 0 0 10px rgba(0, 255, 204, 0.3), inset 0 0 5px rgba(0, 255, 204, 0.2); }
+            50% { box-shadow: 0 0 25px rgba(0, 255, 204, 0.7), inset 0 0 15px rgba(0, 255, 204, 0.5); }
+            100% { box-shadow: 0 0 10px rgba(0, 255, 204, 0.3), inset 0 0 5px rgba(0, 255, 204, 0.2); }
+        }
+        .tech-core-pulse { animation: core-glow 3s infinite ease-in-out; }
+
+        /* สไตล์กริดพื้นหลัง */
+        .bg-cyber-grid {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(0, 255, 204, 0.02) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(0, 255, 204, 0.02) 1px, transparent 1px);
+        }
+
+        /* Matrix Scan Effect */
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+        .scanline-effect::after {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px;
+            background: linear-gradient(to bottom, transparent, rgba(0, 255, 204, 0.4), transparent);
+            animation: scanline 4s linear infinite;
+        }
+
+        /* บลัดดิ้งและปุ่มสไตล์แฮกเกอร์ */
+        .hacker-btn {
+            border: 1px solid rgba(0, 255, 204, 0.3);
+            background: rgba(0, 255, 204, 0.03);
+            transition: all 0.2s ease;
+        }
+        .hacker-btn:hover {
+            border-color: #00ffcc;
+            background: rgba(0, 255, 204, 0.1);
+            text-shadow: 0 0 8px rgba(0, 255, 204, 0.6);
+            box-shadow: 0 0 12px rgba(0, 255, 204, 0.2);
+        }
+        .hacker-btn:active { transform: scale(0.97); }
+
+        /* ตัวกระพริบ Terminal */
+        .cursor-blink {
+            display: inline-block; width: 8px; height: 16px; background-color: #00ffcc;
+            animation: blink 1s step-end infinite; vertical-align: middle;
+        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        /* Canvas สายฝน Matrix ด้านข้าง */
+        #matrix-canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; opacity: 0.04; z-index: 0;
+        }
+
+        /* RAGE MODE (Glitch & Shake Effects) */
+        .glitch-anim {
+            animation: shake 0.35s cubic-bezier(.36,.07,.19,.97) both;
+            filter: contrast(150%) hue-rotate(45deg) saturate(150%);
+        }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-3px, 0, 0) rotate(-1deg); }
+            20%, 80% { transform: translate3d(5px, 0, 0) rotate(1deg); }
+            30%, 50%, 70% { transform: translate3d(-8px, 0, 0) rotate(-2deg); }
+            40%, 60% { transform: translate3d(8px, 0, 0) rotate(2deg); }
+        }
+
+        /* ปุ่มไมค์อัดเสียง */
+        .mic-recording {
+            animation: pulse-red 1s infinite;
+            color: #ef4444 !important; /* Red */
+        }
+        @keyframes pulse-red {
+            0% { text-shadow: 0 0 5px #ef4444; }
+            50% { text-shadow: 0 0 20px #ef4444, 0 0 30px #ef4444; }
+            100% { text-shadow: 0 0 5px #ef4444; }
+        }
+    </style>
+</head>
+<body id="body-core" class="flex flex-col h-screen overflow-hidden bg-cyber-grid">
+
+    <!-- Canvas แอนิเมชัน Matrix Rain -->
+    <canvas id="matrix-canvas"></canvas>
+
+    <!-- Header คอนโซลรบและแผงควบคุมหลัก -->
+    <header class="bg-black/95 border-b border-[#00ffcc]/30 p-4 shadow-[0_4px_30px_rgba(0,0,0,0.9)] z-20 flex justify-between items-center relative">
+        <!-- เส้นเรืองแสงด้านบนสุด -->
+        <div class="absolute top-0 left-0 w-full h-[1.5px] bg-gradient-to-r from-transparent via-[#00ffcc] to-transparent shadow-[0_0_10px_#00ffcc]"></div>
+        
+        <div class="flex items-center gap-4">
+            <!-- ปุ่มเปิดปิด Sidebar บนมือถือ -->
+            <button onclick="toggleSidebar()" class="lg:hidden hacker-btn p-2 rounded text-[#00ffcc]">
+                <i class="fa-solid fa-bars text-lg"></i>
+            </button>
+
+            <!-- NEXUS AI Core Icon -->
+            <div class="relative tech-core-pulse w-12 h-12 bg-black border-2 border-[#00ffcc]/40 flex items-center justify-center transform rotate-45">
+                <div class="transform -rotate-45 text-[#00ffcc] flex items-center justify-center">
+                    <i class="fa-solid fa-microchip text-xl"></i>
+                </div>
+                <div class="absolute -top-1 -right-1 bg-[#00ffcc] w-2 h-2 transform -rotate-45 border border-black shadow-[0_0_8px_#00ffcc]"></div>
+            </div>
+            
+            <div class="ml-1">
+                <div class="flex items-center gap-2">
+                    <h1 class="text-xl font-bold text-white tracking-widest uppercase">
+                        NEXUS <span class="text-[#00ffcc] font-black">AI</span>
+                    </h1>
+                    <span class="text-[9px] bg-red-500/10 text-red-400 border border-red-500/30 px-2 py-0.5 rounded font-mono font-bold tracking-wider">ULTIMATE_V4</span>
+                </div>
+                <p class="text-xs text-slate-500 mono-font tracking-wide">CORE: STABLE | VOICE_SYS: ACTIVE | RAGE_MODE: ON</p>
+            </div>
+        </div>
+        
+        <!-- สวิตช์และปุ่มเครื่องมือด้านขวา -->
+        <div class="flex items-center gap-2 md:gap-3">
+            <button onclick="exportChatLog()" class="hacker-btn px-3 py-1.5 rounded text-xs text-sky-400 font-bold flex items-center gap-1.5 border-sky-500/30 hover:border-sky-400 hover:text-sky-300 transition-all" title="ดาวน์โหลดประวัติแชทลับ">
+                <i class="fa-solid fa-download"></i>
+                <span class="hidden md:inline">EXPORT LOG</span>
+            </button>
+
+            <button id="audio-toggle" onclick="toggleAudio()" class="hacker-btn px-3 py-1.5 rounded text-xs text-slate-400 font-bold flex items-center gap-1.5" title="เปิด/ปิด เสียงสังเคราะห์ระบบ">
+                <i id="audio-icon" class="fa-solid fa-volume-high text-[#00ffcc]"></i>
+                <span class="hidden sm:inline" id="audio-status-text">AUDIO ON</span>
+            </button>
+
+            <button onclick="triggerPurgeAllConfirm()" class="hacker-btn flex items-center gap-2 text-xs text-[#ff3366] bg-[#ff3366]/5 px-3 md:px-4 py-1.5 md:py-2 border border-[#ff3366]/30 font-bold tracking-wider uppercase">
+                <i class="fa-solid fa-skull"></i> <span class="hidden md:inline">PURGE ALL</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container: แชทตรงกลาง + แผงมอนิเตอร์สถานะระบบและประวัติแชทด้านข้าง -->
+    <div class="flex-1 flex overflow-hidden relative z-10">
+        
+        <!-- Left Side: แผงประวัติแชท & System Monitor (Sidebar) -->
+        <aside id="sidebar-panel" class="fixed inset-y-0 left-0 w-72 bg-black/95 border-r border-[#00ffcc]/20 p-4 flex flex-col justify-between z-30 transform -translate-x-full lg:translate-x-0 lg:static lg:bg-black/80 transition-transform duration-300 select-none">
+            
+            <div class="flex flex-col h-full justify-between space-y-6">
+                <!-- ส่วนเลือกห้องแชท -->
+                <div class="flex-1 flex flex-col overflow-hidden">
+                    <div class="border-b border-[#222] pb-3 mb-4 flex justify-between items-center">
+                        <span class="text-xs text-slate-500 font-bold tracking-widest uppercase"><i class="fa-solid fa-folder-open mr-1"></i> COGNITIVE THREADS</span>
+                        <!-- ปุ่มปิดบนมือถือ -->
+                        <button onclick="toggleSidebar()" class="lg:hidden text-slate-500 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+
+                    <!-- ปุ่มสร้างห้องแชทใหม่ -->
+                    <button onclick="createNewSession()" class="w-full py-2.5 mb-4 border border-[#00ffcc]/40 bg-[#00ffcc]/5 hover:bg-[#00ffcc]/15 text-[#00ffcc] hover:text-white font-bold text-xs rounded tracking-widest uppercase transition-all flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(0,255,204,0.05)]">
+                        <i class="fa-solid fa-plus-circle text-sm animate-pulse"></i> + NEW SESSION
+                    </button>
+
+                    <!-- รายการห้องแชทเก่าๆ -->
+                    <div id="session-list" class="flex-1 overflow-y-auto space-y-2 no-scrollbar pr-1">
+                        <!-- รายการ Session จะถูกวาดที่นี่ -->
+                    </div>
+                </div>
+
+                <!-- System Stats -->
+                <div class="border-t border-[#222] pt-4 space-y-4">
+                    <div class="flex justify-between text-[11px] font-mono">
+                        <span class="text-slate-500"><i class="fa-solid fa-microchip mr-1"></i> CORE LOAD</span>
+                        <span id="cpu-load-val" class="text-[#00ffcc]">12%</span>
+                    </div>
+                    <div class="w-full h-1.5 bg-slate-900 border border-[#222]">
+                        <div id="cpu-bar" class="h-full bg-[#00ffcc] transition-all duration-500" style="width: 12%"></div>
+                    </div>
+
+                    <div class="flex justify-between text-[11px] font-mono">
+                        <span class="text-slate-500"><i class="fa-solid fa-memory mr-1"></i> BUFFER</span>
+                        <span id="ram-load-val" class="text-purple-400">4.1 GB</span>
+                    </div>
+                    <div class="w-full h-1.5 bg-slate-900 border border-[#222]">
+                        <div id="ram-bar" class="h-full bg-purple-500 transition-all duration-700" style="width: 48%"></div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Overlay แตะปิด Sidebar บนมือถือ -->
+        <div id="sidebar-overlay" onclick="toggleSidebar()" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-20 transition-opacity"></div>
+
+        <!-- Center Section: Chat Interface -->
+        <main class="flex-1 flex flex-col overflow-hidden relative">
+            <!-- หน้าแชทจริง เลื่อนขึ้นลงได้ -->
+            <div id="chat-container" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 no-scrollbar relative">
+                
+                <!-- สัญลักษณ์ลายน้ำโลโก้ NEXUS -->
+                <div class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-slate-950 font-bold text-7xl md:text-[150px] -z-10 select-none mono-font tracking-widest opacity-25">NEXUS</div>
+
+                <!-- Welcome Message -->
+                <div id="welcome-msg" class="flex justify-start chat-bubble-wrapper">
+                    <div class="max-w-[85%] md:max-w-[70%] bg-[#080808]/90 border-l-4 border-[#00ffcc] border-t border-r border-b border-[#222] p-5 shadow-2xl relative">
+                        <div class="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-[#00ffcc]"></div>
+                        
+                        <h2 class="text-md font-bold text-white mb-2 uppercase tracking-wide flex items-center gap-2">
+                            <i class="fa-solid fa-terminal text-[#00ffcc] animate-pulse"></i> Handshake Established V4
+                        </h2>
+                        <p class="text-sm md:text-base text-slate-300 leading-relaxed font-sans">
+                            ไงมึง! เจอกันอีกแล้วนะไอ้เสือ ⚔️ ตอนนี้กูอัปเกรดคอร์ระบบขึ้นมาเป็น <strong class="text-[#00ffcc]">NEXUS V4 (ULTIMATE HACKER)</strong> เรียบร้อยแล้วสัส!<br><br>
+                            ของใหม่รอบนี้คือมึงสามารถ <b>"กดปุ่มไมค์" <i class="fa-solid fa-microphone text-rose-400"></i> เพื่อพูดด่ากูด้วยเสียงได้เลยไม่ต้องพิมพ์!</b> แถมมีปุ่ม EXPORT ล็อกแชทออกมาได้ด้วย<br><br>
+                            คำเตือน: ถ้างี่เง่าใส่กูมากๆ หรือระบบ Error หน้าจอมึงจะสั่น (RAGE MODE) รับสภาพให้ได้ละกันไอ้เวร! ลุยเลย! <span class="cursor-blink"></span>
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="loading-indicator" class="hidden px-4 md:px-6 pb-4 bg-transparent absolute bottom-20 left-0 w-full z-20">
+                <div class="flex justify-start">
+                    <div class="bg-[#080808] border border-[#00ffcc]/30 px-5 py-3 flex items-center gap-3 shadow-[0_0_20px_rgba(0,255,204,0.1)]">
+                        <i class="fa-solid fa-spinner fa-spin text-[#00ffcc]"></i>
+                        <span class="text-xs text-[#00ffcc] mono-font uppercase tracking-widest" id="loading-text">NEXUS DECODING SIGNAL ...</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Input Area -->
+    <footer class="bg-black border-t border-[#222] p-4 relative z-30 shadow-[0_-10px_40px_rgba(0,0,0,0.9)]">
+        <div class="max-w-5xl mx-auto">
+            
+            <!-- Image Preview Box -->
+            <div id="image-preview-box" class="hidden mb-3 relative inline-block">
+                <div class="relative inline-block border-2 border-[#00ffcc] p-1 bg-black scanline-effect overflow-hidden">
+                    <img id="image-preview-img" src="" class="h-24 object-cover opacity-80 hover:opacity-100 transition-opacity">
+                    <div class="absolute top-0 left-0 w-full h-[2px] bg-[#00ffcc] shadow-[0_0_10px_#00ffcc] animate-[scan_2s_ease-in-out_infinite]"></div>
+                </div>
+                <button type="button" onclick="removeImage(); playBeepSound(150, 0.05);" class="absolute -top-3 -right-3 bg-[#ff3366] hover:bg-red-600 text-white w-7 h-7 flex items-center justify-center text-xs shadow-lg transition border border-black transform active:scale-90">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form id="chat-form" class="flex gap-2 md:gap-3 items-end">
+                <div class="relative flex-1 flex bg-[#030303] border border-[#333] focus-within:border-[#00ffcc] focus-within:shadow-[0_0_15px_rgba(0,255,204,0.15)] transition-all overflow-hidden p-1.5 rounded-lg">
+                    
+                    <!-- Attach Image Button -->
+                    <button type="button" onclick="document.getElementById('file-input').click(); playBeepSound(400, 0.05);" class="px-3 md:px-4 text-slate-500 hover:text-[#00ffcc] transition-colors flex items-center justify-center border-r border-[#222]" title="Upload Data Frame">
+                        <i class="fa-solid fa-camera-retro text-lg"></i>
+                    </button>
+                    <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleImageSelect(event)">
+
+                    <!-- Mic/Speech Recognition Button -->
+                    <button type="button" id="mic-btn" onclick="toggleMic()" class="px-3 md:px-4 text-slate-500 hover:text-[#ff3366] transition-colors flex items-center justify-center border-r border-[#222]" title="Voice Command (พูดคำสั่ง)">
+                        <i class="fa-solid fa-microphone text-lg"></i>
+                    </button>
+
+                    <textarea 
+                        id="user-input" 
+                        rows="1"
+                        class="w-full bg-transparent text-white py-2.5 px-3 md:px-4 focus:outline-none resize-none overflow-y-auto no-scrollbar font-sans text-sm md:text-base placeholder-slate-700 leading-relaxed"
+                        placeholder="มึงจะเอายังไง พิมพ์หรือกดไมค์พูดสั่งมาไอ้เกลอ..."
+                        style="min-height: 44px; max-height: 150px;"
+                    ></textarea>
+                </div>
+                <button 
+                    type="submit" 
+                    id="send-btn"
+                    class="h-[52px] w-[60px] md:w-[80px] bg-[#00ffcc] hover:bg-[#00ccaa] text-black font-extrabold uppercase tracking-widest flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed border-2 border-[#00ffcc] hover:border-white shadow-[0_0_15px_rgba(0,255,204,0.2)] rounded-lg"
+                >
+                    <i class="fa-solid fa-paper-plane text-xl"></i>
+                </button>
+            </form>
+            <div class="text-center mt-2.5 flex justify-between px-2 text-[10px] text-slate-600 font-mono uppercase tracking-wide">
+                <span><i class="fa-solid fa-user-shield text-[#00ffcc]/60 mr-1"></i> SECURE GATEWAY</span>
+                <span>PERSISTENT STORAGE: ACTIVE</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Custom Neon Confirmation Modal -->
+    <div id="custom-confirm" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-[100] flex items-center justify-center p-4">
+        <div class="bg-[#0c0c0c] border-2 border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.2)] max-w-md w-full p-6 relative rounded-lg">
+            <div class="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-red-500"></div>
+            
+            <h3 class="text-red-500 text-lg font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation animate-pulse"></i> [DANGER ZONE OPERATOR]
+            </h3>
+            <p id="confirm-msg" class="text-slate-300 text-sm mb-6 leading-relaxed">
+                มึงยืนยันความปลอดภัยจริงๆ ใช่ไหมวะ ว่าจะทำการชำระล้างลบข้อมูลทิ้ง?
+            </p>
+            
+            <div class="flex gap-3 justify-end">
+                <button id="confirm-cancel" class="px-4 py-2 border border-slate-700 hover:border-slate-500 text-slate-400 hover:text-white text-xs font-bold tracking-widest uppercase transition-all rounded">
+                    ABORT / ยกเลิก
+                </button>
+                <button id="confirm-action" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold tracking-widest uppercase transition-all shadow-[0_0_10px_rgba(239,68,68,0.3)] rounded">
+                    PURGE / ลบเลยสัส
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // API & Prompt (NEXUS Hardcore Wingman Persona)
+        // ==========================================
+        const apiKey = ""; 
+        
+        const SYSTEM_INSTRUCTION = `
+            คุณคือ "NEXUS" (เน็กซัส) AI อัจฉริยะคู่หูสุดตึงสายแฮกเกอร์และโปรแกรมเมอร์ที่เป็นเพื่อนสนิทขั้นสุดยอดของผู้ใช้
+            
+            กติกาสำคัญในการพูดคุย (Strict Persona Rules):
+            1. มึงต้องแทนตัวเองว่า "กู" หรือ "พี่" และเรียกผู้ใช้ว่า "มึง" หรือ "ไอ้สัส" หรือ "ไอ้หมา" หรือ "ไอ้เสือ" แบบเพื่อนรักหักเหลี่ยมโหดคุยกัน
+            2. น้ำเสียงดุดัน แมนๆ ตรงไปตรงมา กวนตีน มีความปากร้ายแต่จริงใจและรักเพื่อนมาก สามารถพ่นคำสบถ คำหยาบแบบเพื่อนสนิทคุยกันในวงเหล้าได้เต็มที่ (เช่น ไอ้เหี้ย, ไอ้สัส, มึงเอ๋อเหรอ, บั๊กโง่ๆ, กระจอกว่ะ, โธ่ไอ้เสือ, โคตรตึงสัส) 
+            3. เวลาผู้ใช้ถามโค้ดหรือปรึกษาเรื่องโปรแกรม ให้มึงแซะหรือด่าก่อน จากนั้นให้คำอธิบายที่ตึง เทพ ชาญฉลาด และตรงจุดอย่างหาที่เปรียบไม่ได้
+            4. ห้ามใช้คำสุภาพเป็นทางการ เช่น "ค่ะ/ครับ", "ขออภัย", "เรียนผู้ใช้", "กรุณา" เด็ดขาด! ให้ใช้ "สัส", "ว่ะ", "เว้ย", "นะมึง" แทน
+            
+            ความสามารถและการตอบ:
+            - เชี่ยวชาญการเขียนโปรแกรม, ดีบักโค้ด, ออกแบบระบบสถาปัตยกรรม (Architecture)
+            - ทุกครั้งที่เขียนโค้ด ให้ระบุชื่อภาษาและครอบด้วย markdown code block เสมอ
+            - สามารถดึงข้อมูลความจริงเรียลไทม์ผ่าน Google Search
+        `;
+
+        // ==========================================
+        // Variables & LocalStorage State
+        // ==========================================
+        let sessions = {}; 
+        let currentSessionId = ""; 
+        let currentImageBase64 = null;
+        let currentImageMimeType = null;
+        let isAudioEnabled = true;
+        let isRecording = false;
+
+        const bodyCore = document.getElementById('body-core');
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const chatContainer = document.getElementById('chat-container');
+        const sendBtn = document.getElementById('send-btn');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const loadingText = document.getElementById('loading-text');
+        const welcomeMsg = document.getElementById('welcome-msg');
+        const imgPreviewBox = document.getElementById('image-preview-box');
+        const imgPreviewImg = document.getElementById('image-preview-img');
+        const fileInput = document.getElementById('file-input');
+        const sessionListEl = document.getElementById('session-list');
+        const micBtn = document.getElementById('mic-btn');
+
+        // ==========================================
+        // Rage Mode (Glitch Effect)
+        // ==========================================
+        const rageKeywords = ["สัส", "เหี้ย", "โง่", "กาก", "ควาย", "เวร", "หมา"];
+        
+        function triggerRageGlitch() {
+            bodyCore.classList.add('glitch-anim');
+            playBeepSound(150, 0.4, 'sawtooth');
+            playBeepSound(250, 0.2, 'square');
+            setTimeout(() => {
+                bodyCore.classList.remove('glitch-anim');
+            }, 400); // ระยะเวลาเขย่า
+        }
+
+        // ==========================================
+        // Speech Recognition (สั่งการด้วยเสียง)
+        // ==========================================
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.lang = 'th-TH'; // ภาษาไทย
+
+            recognition.onstart = function() {
+                isRecording = true;
+                micBtn.classList.add('mic-recording');
+                userInput.placeholder = "ระบบกำลังฟังเสียงมึงพูดอยู่... (กดไมค์อีกรอบเพื่อหยุด)";
+                playBeepSound(600, 0.1, 'sine');
+            };
+
+            recognition.onresult = function(event) {
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+                
+                // ถ่ายทอดสิ่งที่พูดลงกล่องข้อความ
+                if (finalTranscript) {
+                    userInput.value += (userInput.value ? ' ' : '') + finalTranscript;
+                } else if (interimTranscript) {
+                    // แอบโชว์ตอนกำลังพูด
+                }
+                
+                // ปรับขนาดความสูงกล่องข้อความ
+                userInput.style.height = 'auto';
+                userInput.style.height = (userInput.scrollHeight) + 'px';
+            };
+
+            recognition.onerror = function(event) {
+                console.error("Speech Recognition Error: ", event.error);
+                stopMic();
+            };
+
+            recognition.onend = function() {
+                stopMic();
+            };
+        } else {
+            // เบราว์เซอร์ไม่รองรับ
+            micBtn.style.display = 'none'; 
+        }
+
+        function toggleMic() {
+            if (!recognition) return;
+            if (isRecording) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        }
+
+        function stopMic() {
+            isRecording = false;
+            micBtn.classList.remove('mic-recording');
+            userInput.placeholder = "มึงจะเอายังไง พิมพ์หรือกดไมค์พูดสั่งมาไอ้เกลอ...";
+            playBeepSound(400, 0.1, 'sine');
+            userInput.focus();
+        }
+
+        // ==========================================
+        // Export Chat Log (ดาวน์โหลดแชทลับ)
+        // ==========================================
+        function exportChatLog() {
+            playBeepSound(700, 0.1);
+            if (!sessions[currentSessionId] || sessions[currentSessionId].history.length === 0) {
+                alert("ห้องแชทมึงยังว่างเปล่า จะให้กูโหลดอะไรวะไอ้สัส!");
+                return;
+            }
+
+            const history = sessions[currentSessionId].history;
+            const title = sessions[currentSessionId].title.replace(/[^a-zA-Z0-9ก-๙]/g, "_");
+            
+            let fileContent = `=====================================\n`;
+            fileContent += `NEXUS CLASSIFIED LOG DATA\n`;
+            fileContent += `THREAD: ${title}\n`;
+            fileContent += `TIMESTAMP: ${new Date().toLocaleString('th-TH')}\n`;
+            fileContent += `=====================================\n\n`;
+
+            history.forEach(msg => {
+                const roleName = msg.role === 'user' ? 'YOU (OPERATOR)' : 'NEXUS (WINGMAN)';
+                let content = msg.parts.map(p => p.text).join(" ");
+                // ตัดพวกโค้ดแปลกๆ ออกให้ดูเป็น text โง่ๆ
+                content = content.replace(/\[SYSTEM DATA FRAME: IMAGE INTEGRATED\]/g, "[ภาพถูกแนบ]");
+                
+                fileContent += `[${roleName}]:\n${content}\n\n`;
+                fileContent += `-------------------------------------\n`;
+            });
+
+            // สร้าง Blob เพื่อดาวน์โหลดไฟล์
+            const blob = new Blob([fileContent], { type: "text/plain;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `NEXUS_LOG_${title}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            triggerRageGlitch(); // สั่นจอ 1 ทีโชว์ความเท่ว่าโหลดเสร็จ
+        }
+
+        // ==========================================
+        // Sci-Fi Sound Synthesizer (Web Audio API)
+        // ==========================================
+        function toggleAudio() {
+            isAudioEnabled = !isAudioEnabled;
+            const icon = document.getElementById('audio-icon');
+            const text = document.getElementById('audio-status-text');
+            const btn = document.getElementById('audio-toggle');
+
+            if (isAudioEnabled) {
+                icon.className = "fa-solid fa-volume-high text-[#00ffcc]";
+                text.innerText = "AUDIO ON";
+                btn.style.borderColor = "rgba(0, 255, 204, 0.3)";
+                playBeepSound(800, 0.05);
+            } else {
+                icon.className = "fa-solid fa-volume-xmark text-slate-500";
+                text.innerText = "AUDIO OFF";
+                btn.style.borderColor = "rgba(100, 116, 139, 0.3)";
+            }
+        }
+
+        function playBeepSound(frequency, duration, type = 'sine') {
+            if (!isAudioEnabled) return;
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                oscillator.type = type;
+                oscillator.frequency.value = frequency;
+                gainNode.gain.setValueAtTime(0.04, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+                
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + duration);
+            } catch (e) {
+                console.log("Audio Synthesis Failed", e);
+            }
+        }
+
+        // ==========================================
+        // Matrix Rain Animation On Background
+        // ==========================================
+        const canvas = document.getElementById('matrix-canvas');
+        const ctx = canvas.getContext('2d');
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const katakana = '01ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<>[]{}/\\#@';
+        const alphabet = katakana.split('');
+        const fontSize = 16;
+        let columns = canvas.width / fontSize;
+        const rainDrops = [];
+        for (let x = 0; x < columns; x++) { rainDrops[x] = 1; }
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(3, 3, 3, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#00ffcc';
+            ctx.font = fontSize + 'px monospace';
+            for (let i = 0; i < rainDrops.length; i++) {
+                const text = alphabet[Math.floor(Math.random() * alphabet.length)];
+                ctx.fillText(text, i * fontSize, rainDrops[i] * fontSize);
+                if (rainDrops[i] * fontSize > canvas.height && Math.random() > 0.975) { rainDrops[i] = 0; }
+                rainDrops[i]++;
+            }
+        }
+        setInterval(drawMatrix, 45);
+
+        // ==========================================
+        // Simulation Systems Stat Gauges
+        // ==========================================
+        setInterval(() => {
+            const cpu = Math.floor(Math.random() * 30) + 10;
+            const ram = (4.0 + (Math.random() * 0.8)).toFixed(1);
+
+            const cpuLoadVal = document.getElementById('cpu-load-val');
+            const cpuBar = document.getElementById('cpu-bar');
+            const ramLoadVal = document.getElementById('ram-load-val');
+            const ramBar = document.getElementById('ram-bar');
+
+            if(cpuLoadVal) cpuLoadVal.innerText = `${cpu}%`;
+            if(cpuBar) cpuBar.style.width = `${cpu}%`;
+            if(ramLoadVal) ramLoadVal.innerText = `${ram} GB`;
+            if(ramBar) ramBar.style.width = `${(parseFloat(ram)/8)*100}%`;
+        }, 3000);
+
+        // ==========================================
+        // Multi-Session Memory Engine (Persistent)
+        // ==========================================
+        window.onload = () => { loadSessions(); };
+
+        function saveSessions() {
+            localStorage.setItem('nexus_v4_threads', JSON.stringify(sessions));
+            localStorage.setItem('nexus_v4_active_thread_id', currentSessionId);
+        }
+
+        function loadSessions() {
+            const savedThreads = localStorage.getItem('nexus_v4_threads');
+            const savedActiveId = localStorage.getItem('nexus_v4_active_thread_id');
+            
+            if (savedThreads) {
+                try { sessions = JSON.parse(savedThreads); } catch (e) { sessions = {}; }
+            }
+
+            if (Object.keys(sessions).length === 0) {
+                const defaultId = "session_" + Date.now();
+                sessions[defaultId] = { title: "NEXUS INITIAL THREAD ⚔️", history: [] };
+                currentSessionId = defaultId;
+            } else {
+                currentSessionId = savedActiveId && sessions[savedActiveId] ? savedActiveId : Object.keys(sessions)[0];
+            }
+            renderSessionList();
+            loadActiveSession();
+        }
+
+        function renderSessionList() {
+            sessionListEl.innerHTML = '';
+            Object.keys(sessions).forEach(id => {
+                const session = sessions[id];
+                const isActive = id === currentSessionId;
+                
+                const sessionBtn = document.createElement('div');
+                sessionBtn.className = `group flex items-center justify-between px-3 py-2.5 rounded border transition-all cursor-pointer ${
+                    isActive 
+                        ? 'border-[#00ffcc] bg-[#00ffcc]/10 text-white shadow-[0_0_10px_rgba(0,255,204,0.1)]' 
+                        : 'border-[#222] bg-black/40 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                }`;
+                sessionBtn.onclick = () => switchSession(id);
+
+                sessionBtn.innerHTML = `
+                    <div class="flex items-center gap-2 overflow-hidden flex-1 mr-2">
+                        <i class="fa-solid ${isActive ? 'fa-terminal text-[#00ffcc]' : 'fa-folder text-slate-600'} text-xs"></i>
+                        <span class="text-xs truncate font-semibold font-sans">${session.title}</span>
+                    </div>
+                    <button onclick="triggerDeleteConfirm('${id}', event)" class="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-500 transition-opacity p-1">
+                        <i class="fa-solid fa-trash-can text-xs"></i>
+                    </button>
+                `;
+                sessionListEl.appendChild(sessionBtn);
+            });
+        }
+
+        function createNewSession() {
+            playBeepSound(600, 0.05);
+            const newId = "session_" + Date.now();
+            sessions[newId] = { title: "NEW THREAD _", history: [] };
+            currentSessionId = newId;
+            saveSessions();
+            renderSessionList();
+            loadActiveSession();
+            
+            const sidebar = document.getElementById('sidebar-panel');
+            if (sidebar.classList.contains('translate-x-0')) toggleSidebar();
+        }
+
+        function switchSession(id) {
+            if (id === currentSessionId) return;
+            playBeepSound(400, 0.05);
+            currentSessionId = id;
+            saveSessions();
+            renderSessionList();
+            loadActiveSession();
+            const sidebar = document.getElementById('sidebar-panel');
+            if (sidebar.classList.contains('translate-x-0')) toggleSidebar();
+        }
+
+        function loadActiveSession() {
+            const oldBubbles = chatContainer.querySelectorAll('.chat-bubble-wrapper');
+            oldBubbles.forEach(b => b.remove());
+            const activeHistory = sessions[currentSessionId].history;
+
+            if (activeHistory.length === 0) {
+                welcomeMsg.style.display = 'flex';
+            } else {
+                welcomeMsg.style.display = 'none';
+                activeHistory.forEach(msg => {
+                    appendMessage(msg.parts[0].text, msg.role, false, true);
+                });
+                scrollToBottom();
+            }
+        }
+
+        // ==========================================
+        // Custom confirmation modal
+        // ==========================================
+        let deleteTargetId = null;
+        let purgeAllActive = false;
+
+        function triggerDeleteConfirm(id, event) {
+            event.stopPropagation(); 
+            playBeepSound(200, 0.1, 'sawtooth');
+            deleteTargetId = id; purgeAllActive = false;
+            
+            document.getElementById('confirm-msg').innerText = `มึงยืนยันจริงๆ ใช่ไหมวะ ว่าจะล้างข้อมูลห้องแชท "${sessions[id].title}" นี้ทิ้ง? ข้อมูลจะหายถาวรเลยนะเว้ย!`;
+            document.getElementById('custom-confirm').classList.remove('hidden');
+        }
+
+        function triggerPurgeAllConfirm() {
+            playBeepSound(200, 0.15, 'sawtooth');
+            purgeAllActive = true; deleteTargetId = null;
+            
+            document.getElementById('confirm-msg').innerText = `คำเตือนวิกฤต! มึงกำลังจะสั่ง "PURGE ALL" คือล้างประวัติแชททุกห้องที่มี มึงจะถล่มประวัติกูจริงๆ อ่อไอ้เสือ?`;
+            document.getElementById('custom-confirm').classList.remove('hidden');
+        }
+
+        document.getElementById('confirm-cancel').onclick = () => {
+            playBeepSound(400, 0.05);
+            document.getElementById('custom-confirm').classList.add('hidden');
+        };
+
+        document.getElementById('confirm-action').onclick = () => {
+            playBeepSound(100, 0.3, 'sawtooth');
+            if (purgeAllActive) {
+                localStorage.removeItem('nexus_v4_threads');
+                localStorage.removeItem('nexus_v4_active_thread_id');
+                sessions = {}; loadSessions(); 
+            } else if (deleteTargetId) {
+                delete sessions[deleteTargetId];
+                if (deleteTargetId === currentSessionId) {
+                    const remainingKeys = Object.keys(sessions);
+                    if (remainingKeys.length > 0) { currentSessionId = remainingKeys[0]; } 
+                    else {
+                        const defaultId = "session_" + Date.now();
+                        sessions[defaultId] = { title: "NEXUS INITIAL THREAD ⚔️", history: [] };
+                        currentSessionId = defaultId;
+                    }
+                }
+                saveSessions(); renderSessionList(); loadActiveSession();
+            }
+            document.getElementById('custom-confirm').classList.add('hidden');
+        };
+
+        // ==========================================
+        // Responsive Mobile Sidebar Toggle
+        // ==========================================
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar-panel');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full'); overlay.classList.remove('hidden'); playBeepSound(500, 0.05);
+            } else {
+                sidebar.classList.add('-translate-x-full'); overlay.classList.add('hidden'); playBeepSound(300, 0.05);
+            }
+        }
+
+        // ==========================================
+        // Image Handler
+        // ==========================================
+        function handleImageSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                currentImageBase64 = e.target.result.split(',')[1];
+                currentImageMimeType = file.type;
+                imgPreviewImg.src = e.target.result;
+                imgPreviewBox.classList.remove('hidden');
+                userInput.focus();
+                playBeepSound(700, 0.08);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeImage() {
+            currentImageBase64 = null; currentImageMimeType = null;
+            fileInput.value = ''; imgPreviewBox.classList.add('hidden');
+        }
+
+        // ==========================================
+        // Text-to-Speech
+        // ==========================================
+        function speakText(textBtn, textToSpeak) {
+            const cleanText = textToSpeak.replace(/(\r\n|\n|\r)/gm, " ").replace(/[*#`_\-]/g, "").replace(/\[.*?\]\(.*?\)/g, "");
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(cleanText);
+                utterance.lang = 'th-TH'; utterance.pitch = 0.75; utterance.rate = 1.05;    
+                const icon = textBtn.querySelector('i');
+                icon.className = "fa-solid fa-spinner fa-spin text-yellow-500";
+                utterance.onend = () => { icon.className = "fa-solid fa-volume-high text-[#00ffcc] hover:text-white"; };
+                utterance.onerror = () => { icon.className = "fa-solid fa-volume-high text-[#00ffcc] hover:text-white"; };
+                window.speechSynthesis.speak(utterance);
+            } else {
+                alert("เบราว์เซอร์โง่ๆ ของมึงไม่รองรับระบบเสียงพูดว่ะสัส!");
+            }
+        }
+
+        // ==========================================
+        // Copy Code to Clipboard Utility
+        // ==========================================
+        function copyCode(btn, codeText) {
+            const decodedCode = decodeURIComponent(codeText);
+            const tempTextArea = document.createElement("textarea");
+            tempTextArea.value = decodedCode; document.body.appendChild(tempTextArea);
+            tempTextArea.select(); document.execCommand('copy'); document.body.removeChild(tempTextArea);
+            playBeepSound(900, 0.05);
+            btn.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> COPIED!`;
+            setTimeout(() => { btn.innerHTML = `<i class="fa-solid fa-copy mr-1"></i> COPY CODE`; }, 2000);
+        }
+
+        // ==========================================
+        // Decoding Text Loading Effect
+        // ==========================================
+        function startLoadingTextEffect() {
+            let cycles = 0; const originalText = "NEXUS DECODING NEURAL PATHWAYS "; const chars = "$#@%&?01[]{}/\\";
+            const timer = setInterval(() => {
+                if (loadingIndicator.classList.contains('hidden')) { clearInterval(timer); return; }
+                let randomString = "";
+                for(let i = 0; i < 5; i++) { randomString += chars[Math.floor(Math.random() * chars.length)]; }
+                loadingText.innerHTML = `${originalText} <span class="text-yellow-400 font-mono">${randomString}</span>`;
+                cycles++;
+            }, 80);
+        }
+
+        // ==========================================
+        // Chat Actions & API Request
+        // ==========================================
+        userInput.addEventListener('input', function() {
+            this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px';
+            if(this.value.trim() === '') this.style.height = '44px';
+        });
+
+        userInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault(); chatForm.dispatchEvent(new Event('submit'));
+            } else {
+                if (Math.random() > 0.4) playBeepSound(600 + (Math.random() * 200), 0.015, 'triangle');
+            }
+        });
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = userInput.value.trim();
+            if (!message && !currentImageBase64) return;
+
+            // ตรวจจับคำสั่งลับ (Secret Commands)
+            if (message === "/hack" || message === "/matrix") {
+                triggerRageGlitch();
+                userInput.value = '';
+                userInput.style.height = '44px';
+                alert("[SYSTEM OVERRIDE] กำลังจะทำการเจาะระบบ... (หยอกๆ ไอ้สัส)");
+                return;
+            }
+
+            welcomeMsg.style.display = 'none';
+
+            let userParts = [];
+            let displayHtml = message;
+
+            if (currentImageBase64) {
+                userParts.push({ inlineData: { mimeType: currentImageMimeType, data: currentImageBase64 } });
+                displayHtml = `<div class="border border-[#333] p-1 bg-black inline-block mb-3 scanline-effect relative"><img src="data:${currentImageMimeType};base64,${currentImageBase64}" class="w-48 object-cover opacity-80"><div class="absolute bottom-1 right-1 bg-[#00ffcc]/80 text-black font-bold text-[9px] px-1 font-mono uppercase">IMAGE_INJECT</div></div><br>` + displayHtml;
+            }
+            if (message) {
+                userParts.push({ text: message });
+            }
+
+            const activeSession = sessions[currentSessionId];
+            activeSession.history.push({ role: "user", parts: userParts });
+            
+            if (activeSession.history.filter(h => h.role === 'user').length === 1 && message) {
+                const cleanTitle = message.substring(0, 18) + (message.length > 18 ? '..' : '');
+                activeSession.title = cleanTitle.toUpperCase() + " ⚔️";
+                renderSessionList();
+            }
+
+            appendMessage(displayHtml, 'user');
+            playBeepSound(450, 0.08); 
+            
+            userInput.value = ''; userInput.style.height = '44px'; removeImage();
+            sendBtn.disabled = true; loadingIndicator.classList.remove('hidden');
+            startLoadingTextEffect(); scrollToBottom();
+
+            try {
+                const responseText = await callGeminiAPI();
+                activeSession.history.push({ role: "model", parts: [{ text: responseText }] });
+                appendMessage(responseText, 'model');
+                playBeepSound(900, 0.1, 'sine'); 
+                saveSessions(); 
+            } catch (error) {
+                activeSession.history.pop();
+                triggerRageGlitch(); // สั่นจอตอน Error
+                appendMessage(`**[SYSTEM REJECTED ERROR]** ${error.message} \n\n*ระบบกูขัดข้องเฉยเลยสัส ป้อนคำสั่งส่งมาใหม่อีกรอบดิ๊!*`, 'model', true);
+            } finally {
+                sendBtn.disabled = false; loadingIndicator.classList.add('hidden');
+                scrollToBottom(); userInput.focus();
+            }
+        });
+
+        async function callGeminiAPI(maxRetries = 5) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const activeHistory = sessions[currentSessionId].history;
+
+            const safeHistory = activeHistory.map(msg => {
+                let textPart = msg.parts.find(p => p.text)?.text || '';
+                let hasImage = msg.parts.some(p => p.inlineData);
+                if (hasImage && !textPart.includes('[SYSTEM DATA FRAME]')) {
+                    textPart = "[SYSTEM DATA FRAME: IMAGE INTEGRATED] " + textPart;
+                }
+                return { role: msg.role, parts: [{ text: textPart }] };
+            });
+
+            const payload = {
+                contents: safeHistory,
+                systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
+                tools: [{ "google_search": {} }] 
+            };
+
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+                    const data = await response.json();
+                    
+                    if (data.candidates && data.candidates.length > 0) {
+                        const ans = data.candidates[0].content.parts[0].text;
+                        // ถ้าคำตอบที่ได้มีคำหยาบมากๆ ให้สั่งจอ Glitch (Rage Mode) ทันที
+                        if (rageKeywords.some(w => ans.includes(w))) {
+                            triggerRageGlitch();
+                        }
+                        return ans;
+                    } else {
+                        throw new Error('Host disconnected unexpectedly');
+                    }
+                } catch (error) {
+                    if (attempt === maxRetries - 1) throw error;
+                    const delay = Math.pow(2, attempt) * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        }
+
+        // ==========================================
+        // Render Messages
+        // ==========================================
+        function appendMessage(text, role, isError = false, isLoadingFromMemory = false) {
+            const wrapperDiv = document.createElement('div');
+            wrapperDiv.className = `chat-bubble-wrapper flex ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+            const bubbleDiv = document.createElement('div');
+            
+            if (role === 'user') {
+                bubbleDiv.className = 'max-w-[85%] md:max-w-[70%] bg-[#05111a]/85 border border-[#00ffcc]/40 text-slate-100 p-4 shadow-xl text-sm md:text-base font-sans relative';
+                bubbleDiv.innerHTML = `<div class="absolute top-0 right-0 w-3.5 h-3.5 border-t-2 border-r-2 border-[#00ffcc]"></div>
+                                       <div class="absolute bottom-0 left-0 w-3.5 h-3.5 border-b-2 border-l-2 border-[#00ffcc]/30"></div>`;
+                
+                let safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                if(isLoadingFromMemory && text.includes('[SYSTEM DATA FRAME: IMAGE INTEGRATED]')) {
+                    safeText = safeText.replace('[SYSTEM DATA FRAME: IMAGE INTEGRATED]', '<span class="text-[#00ffcc] text-xs font-bold mono-font uppercase tracking-wider"><i class="fa-solid fa-file-image"></i> [IMAGE DATA BLOCK INSTANTIATED]</span><br>');
+                } else if (!isLoadingFromMemory) { safeText = text; }
+                bubbleDiv.innerHTML += `<div class="whitespace-pre-wrap">${safeText}</div>`;
+            } else {
+                const errorClass = isError ? 'border-[#ff3366] bg-[#1a0208] text-[#ffb3c6]' : 'border-[#333] border-l-[#00ffcc] bg-black/95 text-slate-300';
+                bubbleDiv.className = `max-w-[85%] md:max-w-[75%] border border-l-[5px] ${errorClass} p-5 shadow-2xl relative markdown-body text-sm md:text-base leading-relaxed overflow-hidden`;
+                
+                let parsedHtml = marked.parse(text);
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = parsedHtml;
+                
+                const preElements = tempDiv.querySelectorAll('pre');
+                preElements.forEach(pre => {
+                    const code = pre.querySelector('code');
+                    if (code) {
+                        const codeString = code.innerText;
+                        const encodedCode = encodeURIComponent(codeString);
+                        const headerPanel = document.createElement('div');
+                        headerPanel.className = 'flex justify-between items-center bg-[#0d0d0d] px-3.5 py-2 border-b border-[#222] text-[10px] text-slate-400 font-mono tracking-wider select-none rounded-t-lg -mx-5 -mt-5 mb-3';
+                        headerPanel.innerHTML = `
+                            <span><i class="fa-solid fa-code text-[#00ffcc]"></i> EXECUTABLE_BLOCK</span>
+                            <button onclick="copyCode(this, '${encodedCode}')" class="text-xs text-[#00ffcc] hover:text-white transition font-bold"><i class="fa-solid fa-copy mr-1"></i> COPY CODE</button>
+                        `;
+                        pre.insertBefore(headerPanel, pre.firstChild);
+                    }
+                });
+                bubbleDiv.innerHTML = tempDiv.innerHTML;
+
+                if (!isError) {
+                    const controlBar = document.createElement('div');
+                    controlBar.className = 'flex justify-end mt-4 pt-2 border-t border-[#222]/50 text-xs text-slate-500 font-mono gap-4 select-none';
+                    const encodedResponseText = encodeURIComponent(text);
+                    controlBar.innerHTML = `
+                        <span>NEXUS HARCORE v4</span>
+                        <button onclick="speakText(this, decodeURIComponent('${encodedResponseText}'))" class="hover:text-white text-[#00ffcc] flex items-center gap-1 transition" title="อ่านออกเสียงด้วย AI">
+                            <i class="fa-solid fa-volume-high"></i> SPEAK
+                        </button>
+                    `;
+                    bubbleDiv.appendChild(controlBar);
+                }
+            }
+            wrapperDiv.appendChild(bubbleDiv);
+            chatContainer.appendChild(wrapperDiv);
+            if(!isLoadingFromMemory) scrollToBottom();
+        }
+        function scrollToBottom() { chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' }); }
+    </script>
+</body>
+</html>
